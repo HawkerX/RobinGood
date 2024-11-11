@@ -11,6 +11,9 @@ Patrick "Jack" Harmer
 
 ## References
 
+### Other
+Favicon/Github image generated using DALLE
+
 ### Datasets
 None
 
