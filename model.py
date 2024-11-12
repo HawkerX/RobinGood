@@ -16,6 +16,8 @@ import numpy as np
 SEQUENCE_LENGTH = 10
 EPOCHS = 20
 BATCH_SIZE = 5
+
+# TODO Optimize these variables
 DROPOUT = 0.5 # 0.8
 LEARNING_RATE = 0.001 # 0.001
 DELTA = 1 # for Huber Loss Function (avg = 1 to 2)
