@@ -15,7 +15,7 @@ Patrick "Jack" Harmer
 Favicon/Github image generated using DALLE
 
 ### Datasets
-None
+Test Data: [GOOGL Stock Data](https://www.kaggle.com/datasets/varpit94/google-stock-data?resource=download/)
 
 ### Project Research
 Project Inspiration: [Real-Time Stock Price Analysis](https://www.guvi.io/blog/data-structures-and-algorithms-project-ideas/)\
