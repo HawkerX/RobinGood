@@ -1,0 +1,7 @@
+#File to manage libs we use
+#Run command below in your console for easy install
+#pip install -r requirements.txt
+
+#python==3.12.7
+tensorflow
+pandas
