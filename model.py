@@ -1,3 +1,8 @@
+############################################
+# SUPPRESSES tensorflow warnings
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+############################################
 
 import tensorflow as tf
 
@@ -12,6 +17,6 @@ model.add(tf.keras.layers.Dense(1)) #predicting the future price
 model.compile(optimizer = "adam", loss = "mean_squared_error") #good enough for now
 
 ## OPTIONAL line to print the current model
-model.summary()
+# model.summary()
 
 #>>>train the model
