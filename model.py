@@ -1,5 +1,10 @@
+############################################
+# SUPPRESSES tensorflow warnings
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+############################################
+
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
 
 #Data preparation goes here: x = input, y = output
 
@@ -10,5 +15,8 @@ model.add(tf.keras.layers.Dropout(0.8))#Dropout; look up BatchNormalization
 model.add(tf.keras.layers.GRU(units = 25, return_sequences = False))
 model.add(tf.keras.layers.Dense(1)) #predicting the future price
 model.compile(optimizer = "adam", loss = "mean_squared_error") #good enough for now
+
+## OPTIONAL line to print the current model
+# model.summary()
 
 #>>>train the model
