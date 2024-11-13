@@ -13,15 +13,15 @@ import numpy as np
 ######### CONSTS ############
 # SEQUENCE_LENGTH determines how many past time 
 # steps the model looks at to predict the next value.
-SEQUENCE_LENGTH = 10
-EPOCHS = 70
-BATCH_SIZE = 5
+SEQUENCE_LENGTH =  15 # 10
+EPOCHS = 200
+BATCH_SIZE = 64 # 5
 
 # TODO Optimize these variables
 DROPOUT = 0.4 # 0.8
 LEARNING_RATE = 0.00003 # 0.001
 DELTA = 1 # for Huber Loss Function (avg = 1 to 2)
-PATIENCE = 10 # 5
+PATIENCE = 20 # 5
 
 #############################
 
@@ -42,7 +42,7 @@ train_size = int(len(scaled_data) * 0.8)
 train_data = scaled_data[:train_size]
 test_data = scaled_data[train_size:]
 
-# Create sequences for LSTM
+# Create sequences
 def create_sequences(data, seq_length):
     x, y = [], []
     for i in range(len(data) - seq_length):
@@ -92,12 +92,14 @@ Quantile Loss (Pinball Loss) # Custom Loss Function
 model.summary()  # Optional to print the model structure
 
 early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=PATIENCE, restore_best_weights=True)
+lr_schedule = tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=(PATIENCE/5), min_lr=1e-6) # dynamic learning rate #TODO remove magic vals
+
 model.fit(
     x_train, y_train, 
     validation_split=0.1,
     batch_size=BATCH_SIZE, 
     epochs=EPOCHS, 
-    callbacks=[early_stopping])
+    callbacks=[early_stopping, lr_schedule])
 
 # make predictions
 preds = model.predict(x_test)
