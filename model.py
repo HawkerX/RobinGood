@@ -14,13 +14,14 @@ import numpy as np
 # SEQUENCE_LENGTH determines how many past time 
 # steps the model looks at to predict the next value.
 SEQUENCE_LENGTH = 10
-EPOCHS = 20
+EPOCHS = 50
 BATCH_SIZE = 5
 
 # TODO Optimize these variables
-DROPOUT = 0.5 # 0.8
-LEARNING_RATE = 0.001 # 0.001
+DROPOUT = 0.4 # 0.8
+LEARNING_RATE = 0.0003 # 0.001
 DELTA = 1 # for Huber Loss Function (avg = 1 to 2)
+PATIENCE = 10 # 5
 
 #############################
 
@@ -72,10 +73,11 @@ model.add(tf.keras.layers.GRU(50, return_sequences=True))
 model.add(tf.keras.layers.Dropout(DROPOUT)) #Dropout; look up BatchNormalization
 
 model.add(tf.keras.layers.GRU(50, return_sequences=False))
+model.add(tf.keras.layers.Dropout(DROPOUT))
 model.add(tf.keras.layers.Dense(1))
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE) # for variable learing rate
-model.compile(optimizer=optimizer, loss=tf.keras.losses.Huber(delta=DELTA)) 
+model.compile(optimizer=optimizer, loss="mean_squared_error") 
 """
 LOSS FUNCTIONS
 
@@ -89,7 +91,7 @@ Quantile Loss (Pinball Loss) # Custom Loss Function
 
 model.summary()  # Optional to print the model structure
 
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5, restore_best_weights=True)
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=PATIENCE, restore_best_weights=True)
 model.fit(
     x_train, y_train, 
     validation_split=0.1,
