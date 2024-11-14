@@ -1,0 +1,14 @@
+{
+    "pool":{
+        "Apple Inc.":"AAPL",
+        "Microsoft Corp.":"MSFT",
+        "Amazon.com Inc.":"AMZN",
+        "NVIDIA Corp.":"NVDA",
+        "Alphabet Inc. Class A":"GOOGL",
+        "Tesla Inc.":"TSLA",
+        "Alphabet Inc. Class C":"GOOG",
+        "PepsiCo":"PEP",
+        "Meta Platforms Inc.":"META",
+        "UnitedHealth Group Inc.":"UNH"
+    }
+}
