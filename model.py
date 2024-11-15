@@ -7,6 +7,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
+import keras_tuner
+import keras
 import pandas as pd
 import numpy as np
 
@@ -14,7 +16,7 @@ import numpy as np
 # SEQUENCE_LENGTH determines how many past time 
 # steps the model looks at to predict the next value.
 SEQUENCE_LENGTH = 10
-EPOCHS = 20
+EPOCHS = 200
 BATCH_SIZE = 5
 
 # TODO Optimize these variables
@@ -66,16 +68,28 @@ It randomly "drops" a certain percentage of the neurons.
 
 """
 # Build the GRU Model
-model = tf.keras.Sequential()
-model.add(tf.keras.layers.Input(shape=(x_train.shape[1], 1))) # Input Shap is the train data shape
-model.add(tf.keras.layers.GRU(50, return_sequences=True))
-model.add(tf.keras.layers.Dropout(DROPOUT)) #Dropout; look up BatchNormalization
+def call_existing_code(units, dropout, lr, dp):
+    model = tf.keras.Sequential()
+    model.add(tf.keras.layers.Input(shape=(x_train.shape[1], 1))) # Input Shap is the train data shape
+    model.add(tf.keras.layers.GRU(units = units, return_sequences=True))
+    if dropout:
+        model.add(tf.keras.layers.Dropout(dp)) #Dropout; look up BatchNormalization
 
-model.add(tf.keras.layers.GRU(50, return_sequences=False))
-model.add(tf.keras.layers.Dense(1))
+    model.add(tf.keras.layers.GRU(units = units, return_sequences=False))
+    model.add(tf.keras.layers.Dense(1))
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE) # for variable learing rate
-model.compile(optimizer=optimizer, loss=tf.keras.losses.Huber(delta=DELTA)) 
+    optimizer = tf.keras.optimizers.Adam(learning_rate = lr) # for variable learing rate
+    model.compile(optimizer=optimizer, loss = tf.keras.losses.Huber(delta=1))
+    return model
+
+def build_model(hp):
+    units = hp.Int("units", min_value = 25, max_value = 125, step = 25)
+    dropout = hp.Boolean("dropout")
+    lr = hp.Float("lr", min_value = 1e-6, max_value = 1, sampling = "log")
+    dp = hp.Float("dp", min_value = 1e-2, max_value = 1e-1, sampling = "log")
+    model = call_existing_code(units = units, dropout = dropout, lr = lr, dp = dp)
+    return model
+
 """
 LOSS FUNCTIONS
 
@@ -87,39 +101,67 @@ mean_squared_logarithmic_error # less accurate predictions
 Quantile Loss (Pinball Loss) # Custom Loss Function
 """
 
-model.summary()  # Optional to print the model structure
+#hp = keras_tuner.HyperParameters()
+tuner = keras_tuner.BayesianOptimization(
+    hypermodel = build_model,
+    objective = "val_loss",
+    max_trials = 40,
+    beta = 2.9,
+    seed = None,
+    hyperparameters = None,
+    tune_new_entries = True,
+    allow_new_entries = True,
+    max_retries_per_trial = 0,
+    max_consecutive_failed_trials = 5,
+    overwrite = True,
+    directory = "my_dir",
+    project_name = "mmodelss3"
+)
 
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5, restore_best_weights=True)
-model.fit(
-    x_train, y_train, 
-    validation_split=0.1,
-    batch_size=BATCH_SIZE, 
-    epochs=EPOCHS, 
-    callbacks=[early_stopping])
+print("Search space:  \n" , tuner.search_space_summary())
+tuner.search(x_train, y_train, epochs = 55, validation_data = (x_test, y_test))
 
-# make predictions
-preds = model.predict(x_test)
-preds = scaler.inverse_transform(preds)
+models = tuner.get_best_models(num_models = 3)
+best_model = models[0]
+print("-------------------------")
+print("\nbest model summary: \n", best_model.summary())
+print("-------------------------")
+print("\ntuner results summary: \n", tuner.results_summary())
 
-########### PLOT ###############
-# Plot the actual vs predicted values
-plt.figure(figsize=(14,7))
 
-# Plotting the actual stock prices (true values)
-plt.plot(data.index[train_size + SEQUENCE_LENGTH:], scaler.inverse_transform(test_data[SEQUENCE_LENGTH:]), label='Actual', color='green')
-
-# Plotting the predicted stock prices
-plt.plot(data.index[train_size + SEQUENCE_LENGTH:], preds, label='Predicted', color='red')
-
-# Adding titles and labels
-plt.title('Stock Price Prediction vs Actual Prices')
-plt.xlabel('Date')
-plt.ylabel('Stock Price')
-plt.legend()
-
-# Show the plot
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
-
-###################################
+# model.summary()  # Optional to print the model structure
+# 
+# early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5, restore_best_weights=True)
+# model.fit(
+#     x_train, y_train, 
+#     validation_split=0.1,
+#     batch_size=BATCH_SIZE, 
+#     epochs=EPOCHS, 
+#     callbacks=[early_stopping])
+# 
+# # make predictions
+# preds = model.predict(x_test)
+# preds = scaler.inverse_transform(preds)
+# 
+# ########### PLOT ###############
+# # Plot the actual vs predicted values
+# plt.figure(figsize=(14,7))
+# 
+# # Plotting the actual stock prices (true values)
+# plt.plot(data.index[train_size + SEQUENCE_LENGTH:], scaler.inverse_transform(test_data[SEQUENCE_LENGTH:]), label='Actual', color='green')
+# 
+# # Plotting the predicted stock prices
+# plt.plot(data.index[train_size + SEQUENCE_LENGTH:], preds, label='Predicted', color='red')
+# 
+# # Adding titles and labels
+# plt.title('Stock Price Prediction vs Actual Prices')
+# plt.xlabel('Date')
+# plt.ylabel('Stock Price')
+# plt.legend()
+# 
+# # Show the plot
+# plt.xticks(rotation=45)
+# plt.tight_layout()
+# plt.show()
+# 
+# ###################################
