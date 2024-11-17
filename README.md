@@ -15,7 +15,7 @@ Patrick "Jack" Harmer
 Favicon/Github image generated using DALLE
 
 ### Datasets
-Test Data: [GOOGL Stock Data](https://www.kaggle.com/datasets/varpit94/google-stock-data?resource=download/)
+Test Data: [GOOGL Stock Data](https://www.kaggle.com/datasets/varpit94/google-stock-data?resource=download/)\
 Train Dataset: [COCA COLA STOCK DATA](https://www.kaggle.com/datasets/meetnagadia/coco-cola-stock-data-19622021?resource=download)
 
 ### Project Research
