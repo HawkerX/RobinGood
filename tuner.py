@@ -7,6 +7,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
+import keras_tuner
 import pandas as pd
 import numpy as np
 
@@ -25,7 +26,7 @@ data['Date'] = pd.to_datetime(data['Date'])
 data.set_index('Date', inplace=True)
 
 
-# Preprocess
+# Preprocess 
 # Use all columns and normalize them
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_data = scaler.fit_transform(data)
@@ -62,22 +63,29 @@ It randomly "drops" a certain percentage of the neurons.
 # Build the GRU Model
 def call_existing_code(units, lr, dropout, dp, delta):
     model = tf.keras.Sequential()
-    # model.add(tf.keras.layers.Input(shape=(x_train.shape[1], 1))) # Input Shap is the train data shape
     model.add(tf.keras.layers.Input(shape=(SEQUENCE_LENGTH, scaled_data.shape[1])))
-    model.add(tf.keras.layers.GRU(units = 100, return_sequences=True))
+    model.add(tf.keras.layers.GRU(units = units, return_sequences=True))
     if dropout:
         model.add(tf.keras.layers.Dropout(dp)) #Dropout; look up BatchNormalization
 
-    model.add(tf.keras.layers.GRU(units = 100, return_sequences=False))
+    model.add(tf.keras.layers.GRU(units = units, return_sequences=False))
     model.add(tf.keras.layers.Dense(1))
 
     optimizer = tf.keras.optimizers.Adam(learning_rate = lr) # for variable learing rate
     model.compile(optimizer=optimizer, loss = tf.keras.losses.Huber(delta = delta))
     return model
-#lr = 0.0001/0.00020022
-#Optimized hyperparameters:
+    
+def build_model(hp):
+    units = hp.Int("units", min_value = 25, max_value = 125, step = 25)
+    delta = hp.Float("delta", min_value = 1, max_value = 2.5, step = 0.5)
+    dropout = hp.Boolean("dropout")
+    lr = hp.Float("lr", min_value = 0.0006, max_value = 0.001, sampling = "log")
+    dp = hp.Float("dp", min_value = 1e-2, max_value = 1e-1, sampling = "log")
+    model = call_existing_code(units = units, lr = lr, dropout = dropout, dp = dp, delta = delta)
+    return model
+#Best model so far:
 UNITS = 100
-LR = 0.00020022
+LR = 0.00020022 
 DROPOUT = True
 DP = 0.018381
 DELTA = 1
@@ -95,56 +103,28 @@ Quantile Loss (Pinball Loss) # Custom Loss Function
 """
 
 
+tuner = keras_tuner.BayesianOptimization(
+    hypermodel = build_model,
+    objective = "val_loss",
+    max_trials = 25,
+    beta = 2.6,
+    seed = None,
+    hyperparameters = None,
+    tune_new_entries = True,
+    allow_new_entries = True,
+    max_retries_per_trial = 0,
+    max_consecutive_failed_trials = 3,
+    overwrite = True,
+    directory = "my_dir",
+    project_name = "mmodelss3"
+)
 
-model = call_existing_code(units = UNITS, lr = LR, dropout = DROPOUT, dp = DP, delta = DELTA)
+tuner.search_space_summary()
+tuner.search(x_train, y_train, epochs = 35, validation_data = (x_test, y_test))
 
-model.summary()  # Optional to print the model structure
-
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5, restore_best_weights=True)
-model.fit(
-    x_train, y_train, 
-    validation_split = 0.1,
-    batch_size = BATCH_SIZE, 
-    epochs = EPOCHS, 
-    callbacks = [early_stopping])
-# make predictions
-preds = model.predict(x_test)
-
-
-print("Shape of scaled_data:", scaled_data.shape)
-print("Shape of preds:", preds.shape)
-
-# Create a dummy array with the same number of features as scaled_data
-dummy = np.zeros((preds.shape[0], scaled_data.shape[1]))
-
-# Assuming you're predicting the first feature (index 0)
-dummy[:, 0] = preds.flatten()
-
-# Apply inverse_transform to the dummy array
-preds_inverse = scaler.inverse_transform(dummy)
-
-# Extract the predicted feature (first column)
-preds = preds_inverse[:, 0]
-
-print("Shape of preds after processing:", preds.shape)
-actual = scaler.inverse_transform(test_data[SEQUENCE_LENGTH:])[:, 0]
-plt.figure(figsize=(14,7))
-
-# Plotting the actual stock prices (true values)
-plt.plot(data.index[train_size + SEQUENCE_LENGTH:], actual, label='Actual', color='green')
-
-# Plotting the predicted stock prices
-plt.plot(data.index[train_size + SEQUENCE_LENGTH:], preds, label='Predicted', color='red')
-
-# Adding titles and labels
-plt.title('Stock Price Prediction (Open) vs Actual Prices')
-plt.xlabel('Date')
-plt.ylabel('Stock Price (Open)')
-plt.legend()
-
-# Show the plot
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.show()
-
-###################################
+models = tuner.get_best_models(num_models = 3)[0]
+best_model = models
+print("-------------------------")
+best_model.summary()
+print("-------------------------")
+tuner.results_summary()
